@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 
 ## [Unreleased]
 
+## [1.0.2] — 2026-04-22
+
+### Added
+
+- New command `speckit.red-team.gate` — a deterministic Principle VIII gate that scans the current feature spec for the six red team trigger categories (`money_path`, `regulatory_path`, `ai_llm`, `immutability_audit`, `multi_party`, `contracts`) and blocks `/speckit.plan` if a qualifying spec has no findings report on record.
+- The gate is wired as a **mandatory `before_plan` hook** (new `hooks.before_plan` block in `extension.yml`). Once installed, `/speckit.plan` will auto-invoke the gate on every run; non-qualifying specs return `PROCEED` silently, qualifying specs with a findings report on file return `SATISFIED` with the report path, and qualifying specs without a report return `HALT` with explicit remediation options (run `/speckit.red-team.run`, or opt out with `--skip-red-team-gate: <reason>` which the plan records as an Accepted Risk tagged `[red-team-skipped]`).
+- Gate findings-report discovery supports the canonical `specs/<feature-id>/red-team-findings-*.md` path plus a post-graduation `99_Archive/red-team/<feature-id>/` fallback. Projects MAY override via an optional `config.findings_glob` entry (v1.1 — not required in v1.0.2).
+
+### Rationale
+
+Prior to v1.0.2, enforcement of Principle VIII was hybrid: the constitution declared the rule, the maintainer remembered to invoke the red team. In practice this relies on human memory at exactly the workflow transition where the protocol matters most. v1.0.2 closes the gap by making the gate a mandatory pre-plan hook — the mechanism the `/speckit.plan` skill already understands. A project that installs this extension gets the gate for free; projects that do not install the extension are unaffected.
+
 ## [1.0.1] — 2026-04-22
 
 ### Changed
@@ -30,6 +42,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 
 Real-world dogfood against a 500-line, 27-FR functional spec in a private project: 5 adversary agents dispatched in parallel returned 25 findings in ~1.5 min wall-clock (well under the 30-min SC-002 target). 19 of 25 findings met the "meaningful finding" bar (severity ≥ HIGH AND represents an adversarial scenario `/speckit.clarify` and `/speckit.analyze` structurally cannot catch). One finding caught a cross-spec identifier-type drift between two halves of the same interface contract that had been introduced by a separate commit 1 hour earlier — a class of issue single-spec tools cannot surface.
 
-[Unreleased]: https://github.com/ashbrener/spec-kit-red-team/compare/v1.0.1...HEAD
+[Unreleased]: https://github.com/ashbrener/spec-kit-red-team/compare/v1.0.2...HEAD
+[1.0.2]: https://github.com/ashbrener/spec-kit-red-team/releases/tag/v1.0.2
 [1.0.1]: https://github.com/ashbrener/spec-kit-red-team/releases/tag/v1.0.1
 [1.0.0]: https://github.com/ashbrener/spec-kit-red-team/releases/tag/v1.0.0

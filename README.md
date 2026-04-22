@@ -2,11 +2,11 @@
 
 **Adversarial review of functional specs before `/speckit.plan` locks in architecture.** Complementary to the built-in `/speckit.clarify` (correctness) and `/speckit.analyze` (consistency) commands — this extension adds an adversarial layer that structurally catches issues those tools cannot.
 
-- **Version:** 1.0.1
+- **Version:** 1.0.2
 - **Repository:** https://github.com/ashbrener/spec-kit-red-team
 - **License:** MIT
 - **Requires:** Spec Kit ≥ 0.1.0
-- **Command:** `/speckit.red-team.run`
+- **Commands:** `/speckit.red-team.run`, `/speckit.red-team.gate` (auto-invoked as a `before_plan` hook)
 
 ## Why adversarial review
 
@@ -69,6 +69,13 @@ specify extension add --from https://github.com/ashbrener/spec-kit-red-team
 2. **Declare trigger criteria in your constitution (optional but recommended).** Add a `## Red Team Trigger Criteria` section to `.specify/memory/constitution.md` listing which trigger categories your project cares about. Without this section the command falls back to the six default categories with a warning — fine for bootstrapping, but your constitution is where this belongs long-term.
 
 3. **Invoke it where it fits your workflow.** Typical flow: `/speckit.specify` → `/speckit.clarify` → **`/speckit.red-team.run`** → `/speckit.plan` → `/speckit.tasks` → `/speckit.analyze` → `/speckit.implement`. The red team runs once the spec is clarified but before architecture gets locked in.
+
+   From v1.0.2 the extension also ships a **mandatory `before_plan` gate** (`/speckit.red-team.gate`). Once installed, `/speckit.plan` auto-invokes the gate on every run:
+   - **Non-qualifying spec** (no trigger categories matched) → gate returns `PROCEED` silently; no user-visible change.
+   - **Qualifying spec with findings on record** → gate returns `SATISFIED`, prints the findings path, proceeds.
+   - **Qualifying spec with no findings** → gate returns `HALT`. `/speckit.plan` stops and offers two explicit options: run `/speckit.red-team.run` now, or opt out with `--skip-red-team-gate: <reason>` which the plan records as an Accepted Risk tagged `[red-team-skipped]`.
+
+   The gate is a keyword-based scan (deliberately over-broad — it errs on the side of offering a red team you may not need, never skipping one you do). A project that does not want the gate simply does not install this extension.
 
 ## Usage
 

@@ -3,7 +3,7 @@ schema_version: "1.0"
 extension:
   id: "red-team"
   name: "Red Team"
-  version: "1.0.1"
+  version: "1.0.2"
   description: "Adversarial review of functional specs before /speckit.plan. Parallel adversarial lens agents catch hostile actors, silent failures, and regulatory blind spots that clarify/analyze cannot."
   author: "Ash Brener"
   repository: "https://github.com/ashbrener/spec-kit-red-team"
@@ -20,16 +20,26 @@ provides:
     - name: "speckit.red-team.run"
       file: "commands/red-team.md"
       description: "Attack the current feature spec with project-configured adversarial lenses and produce a structured findings report."
+    - name: "speckit.red-team.gate"
+      file: "commands/red-team-gate.md"
+      description: "Principle VIII gate — scan the current spec for red team trigger categories and block /speckit.plan if a qualifying spec has no findings report on record. Invoked automatically as a before_plan hook."
+
+  hooks:
+    before_plan:
+      - command: "speckit.red-team.gate"
+        description: "Red Team Gate (Principle VIII) — blocks /speckit.plan if the spec triggers a red team category and no findings report exists."
+        prompt: "Running red team gate check on the current feature spec..."
+        optional: false
+        enabled: true
+        # No condition — gate logic runs inside the command itself. The gate
+        # is idempotent and cheap (<10ms) so it runs on every /speckit.plan
+        # invocation; non-qualifying specs return PROCEED silently.
 
   config:
     - name: "red-team-lenses.yml"
       template: "config-template.yml"
       description: "Project-specific adversarial lens catalog. Declares which lenses exist, which trigger categories activate them, and per-lens severity weighting and finding bounds."
       required: true
-
-# No hooks in v1.0 — the command is explicitly invoked by the maintainer after
-# /speckit.clarify and before /speckit.plan. Auto-invocation is a possible
-# v1.1 enhancement once the project has validated its lens catalog.
 
 tags:
   - "adversarial-review"
