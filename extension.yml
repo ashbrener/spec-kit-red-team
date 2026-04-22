@@ -4,7 +4,7 @@ extension:
   id: "red-team"
   name: "Red Team"
   version: "1.0.0"
-  description: "Adversarial review of a functional spec with parallel lens agents before /speckit.plan locks in architecture. Complements /speckit.clarify (correctness) and /speckit.analyze (consistency)."
+  description: "Adversarial review of functional specs before /speckit.plan. Parallel adversarial lens agents catch hostile actors, silent failures, and regulatory blind spots that clarify/analyze cannot."
   author: "Ash Brener"
   repository: "https://github.com/ashbrener/spec-kit-red-team"
   license: "MIT"
