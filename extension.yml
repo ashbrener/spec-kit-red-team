@@ -1,0 +1,48 @@
+schema_version: "1.0"
+
+extension:
+  id: "red-team"
+  name: "Red Team"
+  version: "1.0.0"
+  description: "Adversarial review of a functional spec with parallel lens agents before /speckit.plan locks in architecture. Complements /speckit.clarify (correctness) and /speckit.analyze (consistency)."
+  author: "Ash Brener"
+  repository: "https://github.com/ashbrener/spec-kit-red-team"
+  license: "MIT"
+  homepage: "https://github.com/ashbrener/spec-kit-red-team"
+
+requires:
+  speckit_version: ">=0.7.0"
+  # No external MCP tools required. The command dispatches sub-agents via the
+  # host AI agent's built-in primitives (e.g., Claude Code's Agent tool).
+
+provides:
+  commands:
+    - name: "speckit.red-team.run"
+      file: "commands/red-team.md"
+      description: "Attack the current feature spec with project-configured adversarial lenses and produce a structured findings report."
+
+  config:
+    - name: "red-team-lenses.yml"
+      template: "config-template.yml"
+      description: "Project-specific adversarial lens catalog. Declares which lenses exist, which trigger categories activate them, and per-lens severity weighting and finding bounds."
+      required: true
+
+# No hooks in v1.0 — the command is explicitly invoked by the maintainer after
+# /speckit.clarify and before /speckit.plan. Auto-invocation is a possible
+# v1.1 enhancement once the project has validated its lens catalog.
+
+tags:
+  - "adversarial-review"
+  - "quality-gate"
+  - "spec-hardening"
+  - "pre-plan"
+  - "audit"
+
+defaults:
+  # Project-wide defaults applied to every lens unless overridden per-lens in
+  # the catalog. See config-template.yml for the full lens schema.
+  finding_bound: 5
+  severity_weight: 5
+  # Overwhelming-findings abort threshold: if combined HIGH+CRITICAL findings
+  # reach this count after aggregation, the command warns and offers abort.
+  overwhelming_threshold: 25
