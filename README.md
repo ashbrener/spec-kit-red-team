@@ -27,9 +27,9 @@ Without a red team step, these defects tend to land as production incidents inst
 
 ```mermaid
 flowchart TD
-    A("/speckit.clarify<br>correctness")
-    B("/speckit.red-team.run<br>adversarial — THIS extension")
-    C("/speckit.plan<br>architecture (now hardened)")
+    A("<b>/speckit.clarify</b><hr>correctness")
+    B("<b>/speckit.red-team.run</b><hr>adversarial — THIS extension")
+    C("<b>/speckit.plan</b><hr>architecture (now hardened)")
     A --> B
     B --> C
 ```
