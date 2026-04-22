@@ -25,20 +25,13 @@ Without a red team step, these defects tend to land as production incidents inst
 
 ## How it works
 
-```
-┌──────────────────┐
-│ /speckit.clarify │  correctness
-└──────────────────┘
-         │
-         ▼
-┌──────────────────────┐
-│ /speckit.red-team.run│  adversarial (THIS extension)
-└──────────────────────┘
-         │
-         ▼
-┌──────────────────┐
-│ /speckit.plan    │  architecture (now hardened)
-└──────────────────┘
+```mermaid
+flowchart TD
+    A("/speckit.clarify<br>correctness")
+    B("/speckit.red-team.run<br>adversarial — THIS extension")
+    C("/speckit.plan<br>architecture (now hardened)")
+    A --> B
+    B --> C
 ```
 
 1. You invoke `/speckit.red-team.run <target-spec-path>` after `/speckit.clarify` completes.
