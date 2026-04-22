@@ -2,10 +2,10 @@
 
 **Adversarial review of functional specs before `/speckit.plan` locks in architecture.** Complementary to the built-in `/speckit.clarify` (correctness) and `/speckit.analyze` (consistency) commands — this extension adds an adversarial layer that structurally catches issues those tools cannot.
 
-- **Version:** 1.0.0
+- **Version:** 1.0.1
 - **Repository:** https://github.com/ashbrener/spec-kit-red-team
 - **License:** MIT
-- **Requires:** Spec Kit ≥ 0.7.0
+- **Requires:** Spec Kit ≥ 0.1.0
 - **Command:** `/speckit.red-team.run`
 
 ## Why adversarial review

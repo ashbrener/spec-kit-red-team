@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 
 ## [Unreleased]
 
+## [1.0.1] — 2026-04-22
+
+### Changed
+
+- Lowered `requires.speckit_version` from `>=0.7.0` to `>=0.1.0`. The v1.0.0 requirement was overly conservative and blocked installation on common spec-kit versions (0.6.x) in the field. The extension uses no 0.7.x-specific APIs; matching the community norm (`>=0.1.0` — same as reconcile, refine, and other catalog entries) permits broad adoption. No functional change.
+
 ## [1.0.0] — 2026-04-22
 
 ### Added
@@ -24,5 +30,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 
 Real-world dogfood against a 500-line, 27-FR functional spec in a private project: 5 adversary agents dispatched in parallel returned 25 findings in ~1.5 min wall-clock (well under the 30-min SC-002 target). 19 of 25 findings met the "meaningful finding" bar (severity ≥ HIGH AND represents an adversarial scenario `/speckit.clarify` and `/speckit.analyze` structurally cannot catch). One finding caught a cross-spec identifier-type drift between two halves of the same interface contract that had been introduced by a separate commit 1 hour earlier — a class of issue single-spec tools cannot surface.
 
-[Unreleased]: https://github.com/ashbrener/spec-kit-red-team/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/ashbrener/spec-kit-red-team/compare/v1.0.1...HEAD
+[1.0.1]: https://github.com/ashbrener/spec-kit-red-team/releases/tag/v1.0.1
 [1.0.0]: https://github.com/ashbrener/spec-kit-red-team/releases/tag/v1.0.0

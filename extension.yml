@@ -3,7 +3,7 @@ schema_version: "1.0"
 extension:
   id: "red-team"
   name: "Red Team"
-  version: "1.0.0"
+  version: "1.0.1"
   description: "Adversarial review of functional specs before /speckit.plan. Parallel adversarial lens agents catch hostile actors, silent failures, and regulatory blind spots that clarify/analyze cannot."
   author: "Ash Brener"
   repository: "https://github.com/ashbrener/spec-kit-red-team"
@@ -11,7 +11,7 @@ extension:
   homepage: "https://github.com/ashbrener/spec-kit-red-team"
 
 requires:
-  speckit_version: ">=0.7.0"
+  speckit_version: ">=0.1.0"
   # No external MCP tools required. The command dispatches sub-agents via the
   # host AI agent's built-in primitives (e.g., Claude Code's Agent tool).
 
