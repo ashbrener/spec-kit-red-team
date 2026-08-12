@@ -1,3 +1,5 @@
+
+
 # Red Team — a Spec Kit extension
 
 **Adversarial review of functional specs before `/speckit.plan` locks in architecture.** Complementary to the built-in `/speckit.clarify` (correctness) and `/speckit.analyze` (consistency) commands — this extension adds an adversarial layer that structurally catches issues those tools cannot.
@@ -162,7 +164,7 @@ Your catalog's top-level `lenses:` list is empty. Add at least one lens — see 
 
 ### `INFO: target spec matches no trigger categories — no red team required`
 
-The target spec doesn't match any of the six default trigger categories (money-path, regulatory-path, ai-llm, immutability-audit, multi-party, contracts). This is **not** an error — it means red team isn't warranted. To run anyway (voluntarily), pass `--lenses` with an explicit lens list.
+The target spec doesn't match any of the six default trigger categories (money_path, regulatory_path, ai_llm, immutability_audit, multi_party, contracts). This is **not** an error — it means red team isn't warranted. To run anyway (voluntarily), pass `--lenses` with an explicit lens list.
 
 ### `WARNING: constitution does not yet declare red team trigger criteria`
 
