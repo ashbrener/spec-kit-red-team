@@ -33,8 +33,16 @@
 #   - contracts            — spec defines an upstream/downstream interface contract
 #
 # Examples below are placeholders — replace the `lenses` list with lenses
-# calibrated for YOUR project's domain. Delete examples you don't need;
-# define at least 1 lens covering each trigger category your project cares about.
+# calibrated for YOUR project's domain.
+#
+# COVERAGE REQUIREMENT: the catalog as a whole MUST cover ALL SIX trigger
+# categories (the union of every lens's `trigger_match` must include each
+# category at least once). The mandatory before_plan gate
+# (`speckit.red-team.gate`) can demand a red team for any of the six; a
+# category no lens covers is a gate that can never be satisfied —
+# `speckit.red-team.run` validates this at config load and refuses to run
+# an under-covered catalog. The four examples below cover all six between
+# them; if you delete or reshape them, keep the union complete.
 
 version: "v1"
 
@@ -68,3 +76,27 @@ lenses:
       - "Which data source is trusted as authoritative but could be compromised or lagged?"
     trigger_match: [multi_party, contracts]
     severity_weight: 6
+
+  # Example lens 3 — AI/LLM Adversary
+  # Covers the `ai_llm` category. Customise for the models and inference
+  # surfaces your project actually uses.
+  - name: "AI/LLM Adversary"
+    description: "Attacks LLM-dependent behaviour — hallucination, prompt injection through untrusted inputs, silent failure, and stochastic outputs treated as deterministic."
+    core_questions:
+      - "Where does untrusted text reach a prompt, and what happens when it carries instructions?"
+      - "Which output does the spec treat as correct-by-construction when the model can plausibly hallucinate it?"
+      - "What is the failure behaviour when the model returns nothing, garbage, or a confident wrong answer — does anything detect it?"
+    trigger_match: [ai_llm]
+    severity_weight: 7
+
+  # Example lens 4 — Immutability Adversary
+  # Covers the `immutability_audit` category. Customise for your project's
+  # audit-trail and record-retention guarantees.
+  - name: "Immutability Adversary"
+    description: "Attacks declared immutability and audit-trail guarantees — hunts for mutation paths, retroactive edits, and silent overwrites the spec's storage story does not actually prevent."
+    core_questions:
+      - "Which path can still mutate or delete a record the spec calls immutable or append-only?"
+      - "If an entry were altered after the fact, what in the spec would detect it?"
+      - "Does every state change the spec cares about actually emit an audit record, including the failure and admin paths?"
+    trigger_match: [immutability_audit]
+    severity_weight: 7

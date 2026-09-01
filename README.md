@@ -2,7 +2,7 @@
 
 **Adversarial review of functional specs before `/speckit.plan` locks in architecture.** Complementary to the built-in `/speckit.clarify` (correctness) and `/speckit.analyze` (consistency) commands — this extension adds an adversarial layer that structurally catches issues those tools cannot.
 
-- **Version:** 1.0.2
+- **Version:** 1.0.3
 - **Repository:** https://github.com/ashbrener/spec-kit-red-team
 - **License:** MIT
 - **Requires:** Spec Kit ≥ 0.1.0
@@ -72,8 +72,8 @@ specify extension add --from https://github.com/ashbrener/spec-kit-red-team
 
    From v1.0.2 the extension also ships a **mandatory `before_plan` gate** (`/speckit.red-team.gate`). Once installed, `/speckit.plan` auto-invokes the gate on every run:
    - **Non-qualifying spec** (no trigger categories matched) → gate returns `PROCEED` silently; no user-visible change.
-   - **Qualifying spec with findings on record** → gate returns `SATISFIED`, prints the findings path, proceeds.
-   - **Qualifying spec with no findings** → gate returns `HALT`. `/speckit.plan` stops and offers two explicit options: run `/speckit.red-team.run` now, or opt out with `--skip-red-team-gate: <reason>` which the plan records as an Accepted Risk tagged `[red-team-skipped]`.
+   - **Qualifying spec with a valid findings report on record** → gate returns `SATISFIED`, prints the findings path, proceeds. Since v1.0.3 the report must pass four deterministic structure checks (session/target identity, at least one severity-ranked finding, disposition evidence, no declared non-zero `unresolved` counter) — a file merely matching the `red-team-findings-*.md` glob no longer satisfies the gate. An empty stub, or a report whose resolution walk was abandoned (`unresolved: N` with N > 0), now blocks.
+   - **Qualifying spec with no findings, or only invalid report files** → gate returns `HALT`. `/speckit.plan` stops and offers explicit options: run `/speckit.red-team.run` now (or finish the abandoned resolution walk), or opt out with `--skip-red-team-gate: <reason>` which the plan records as an Accepted Risk tagged `[red-team-skipped]`. The waiver is read from the arguments you pass to `/speckit.plan`: the spec-kit hook mechanism invokes the gate by name only and never forwards arguments, so the gate sources the waiver token from the `/speckit.plan` invocation visible in the session (fixed in v1.0.3 — previously the documented waiver was unreachable when the gate ran as a hook).
 
    The gate is a keyword-based scan (deliberately over-broad — it errs on the side of offering a red team you may not need, never skipping one you do). A project that does not want the gate simply does not install this extension.
 
@@ -146,7 +146,7 @@ See `config-template.yml` for the full lens catalog schema. Key fields per lens:
 | `name` | Yes | Unique within the catalog |
 | `description` | Yes | 1-2 sentence summary of the adversarial angle |
 | `core_questions` | Yes | The attack brief — ≥1 entry, 3+ recommended |
-| `trigger_match` | Yes | ≥1 of: `money_path`, `regulatory_path`, `ai_llm`, `immutability_audit`, `multi_party`, `contracts` |
+| `trigger_match` | Yes | ≥1 of: `money_path`, `regulatory_path`, `ai_llm`, `immutability_audit`, `multi_party`, `contracts`. Across the whole catalog, the union of all lenses' `trigger_match` MUST cover all six categories — the mandatory gate can demand any of them, and `/speckit.red-team.run` refuses an under-covered catalog at config load (v1.0.3). |
 | `severity_weight` | No | Default 5; tie-breaker in lens ranking when >5 match |
 | `finding_bound` | No | Default 5; top-N findings emitted per lens |
 
@@ -163,6 +163,18 @@ Your catalog's top-level `lenses:` list is empty. Add at least one lens — see 
 ### `INFO: target spec matches no trigger categories — no red team required`
 
 The target spec doesn't match any of the six default trigger categories (money-path, regulatory-path, ai-llm, immutability-audit, multi-party, contracts). This is **not** an error — it means red team isn't warranted. To run anyway (voluntarily), pass `--lenses` with an explicit lens list.
+
+### `ERROR: lens catalog leaves trigger categories uncovered: <list>`
+
+Your catalog has no lens covering one or more of the six trigger categories. Because the `before_plan` gate can demand a red team for **any** of the six, an uncovered category is a gate that can never be satisfied — the gate would block `/speckit.plan` while `/speckit.red-team.run` refuses to schedule a lens for the demanded category. Add at least one lens per listed category; `config-template.yml` ships examples covering all six.
+
+### `ERROR: lens '<name>' declares unknown trigger category '<value>'`
+
+A `trigger_match` value is not one of the six known categories (typo such as `moneypath`). A lens keyed to a non-existent category can never be scheduled. Fix the spelling.
+
+### `Red-Team Gate: BLOCKED (findings report present but invalid)`
+
+A file matched `red-team-findings-*.md` but failed the gate's structure checks (v1.0.3). Common causes: a stub/placeholder file, or a report whose session metadata still declares `unresolved: N` with N > 0 (the resolution walk was never finished). Finish the disposition walk and set `unresolved: 0`, or re-run `/speckit.red-team.run`.
 
 ### `WARNING: constitution does not yet declare red team trigger criteria`
 

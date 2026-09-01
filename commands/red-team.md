@@ -94,7 +94,11 @@ Before dispatching any adversary, verify in order. Fail fast on the first failur
 3. **Lens catalog parses**. Read the YAML. If parse fails, print: `ERROR: .specify/extensions/red-team/red-team-lenses.yml failed to parse: <error>` and STOP.
 4. **Catalog non-empty**. If top-level `lenses` list is missing or empty, print: `ERROR: lens catalog has no lenses defined` and STOP.
 5. **Each lens entry has required fields**: `name`, `description`, `core_questions`, `trigger_match`. Entries missing any of these are skipped with a warning — session proceeds on the remainder. If ALL entries are malformed, fail the catalog check.
-6. **Project declares trigger criteria** (soft check — warn, don't fail). Read `<repo-root>/.specify/memory/constitution.md`. Search for a `## Red Team Trigger Criteria` section (or equivalent). If absent, print: `WARNING: constitution does not yet declare red team trigger criteria (expected at ## Red Team Trigger Criteria). Proceeding in bootstrap mode using the six default categories enumerated in the lens catalog schema.` and continue. The six default categories (money_path, regulatory_path, ai_llm, immutability_audit, multi_party, contracts) are used for §3 trigger matching. If `--lenses` was passed, trigger matching is bypassed entirely and this check is a no-op.
+6. **Trigger vocabulary is valid and every gate-demandable category is covered** (hard check — this is config-load validation, run BEFORE any trigger matching, including `--lenses` runs):
+   - **Unknown category** — every value in every lens's `trigger_match` MUST be one of the six categories (`money_path`, `regulatory_path`, `ai_llm`, `immutability_audit`, `multi_party`, `contracts`). On any other value (e.g. a typo like `moneypath`), print: `ERROR: lens '<name>' declares unknown trigger category '<value>'. Valid categories: money_path, regulatory_path, ai_llm, immutability_audit, multi_party, contracts.` and STOP. A lens keyed to a category that does not exist can never be scheduled.
+   - **Uncovered category** — the union of `trigger_match` across all valid lenses MUST cover **all six** categories. If any category is uncovered, print: `ERROR: lens catalog leaves trigger categories uncovered: <list>. The mandatory before_plan gate (speckit.red-team.gate) can demand a red team for ANY of the six categories; a demanded category with no lens is a gate that can never be satisfied (the gate blocks /speckit.plan, but this command cannot schedule a lens to produce the findings report it demands). Add at least one lens covering each listed category — config-template.yml ships examples for all six.` and STOP.
+   - Rationale: without this check, the gate and the run list can deadlock — the gate HALTs `/speckit.plan` demanding a findings report for a matched category, while §4 below refuses to run because no lens covers that category. Fail at config load, with the fix named, instead.
+7. **Project declares trigger criteria** (soft check — warn, don't fail). Read `<repo-root>/.specify/memory/constitution.md`. Search for a `## Red Team Trigger Criteria` section (or equivalent). If absent, print: `WARNING: constitution does not yet declare red team trigger criteria (expected at ## Red Team Trigger Criteria). Proceeding in bootstrap mode using the six default categories enumerated in the lens catalog schema.` and continue. The six default categories (money_path, regulatory_path, ai_llm, immutability_audit, multi_party, contracts) are used for §3 trigger matching. If `--lenses` was passed, trigger matching is bypassed entirely and this check is a no-op.
 
 ## 3. Trigger matching
 
@@ -103,14 +107,30 @@ Skip this section entirely if `--lenses` was passed (jump to §4 using the expli
 Otherwise:
 
 1. **Read the target spec** content (full file).
-2. **Scan for trigger evidence** against the six trigger categories:
-   - `money_path` — keywords/patterns: fee, amount, $, currency, rate, allocation, commitment size, AUM, price, cost, transfer.
-   - `regulatory_path` — keywords/patterns: KYC, AML, compliance, regulator, audit, GDPR, SEC, SFC, FCA, jurisdiction, kill filter, fee structure regulatory.
-   - `ai_llm` — keywords/patterns: LLM, Claude, GPT, prompt, scoring, classification (when LLM-based), summary generation, hallucination.
-   - `immutability_audit` — keywords/patterns: immutable, audit trail, permanent, never deleted, append-only, version preserved.
-   - `multi_party` — keywords/patterns: partner, IC, approval, analyst, maintainer, role, authority, sign-off, gate.
-   - `contracts` — keywords/patterns: upstream, downstream, API, interface, input from, output to, handoff, integration, document pipeline.
-3. **Judgement call**: keyword presence is a heuristic. The final decision is the agent's — if the spec genuinely touches the concern described in the category, include it. If the keyword is incidental (e.g., "audit" in a non-audit sentence), exclude it.
+2. **Scan for trigger evidence** against the six trigger categories, using
+   the **same canonical keyword table as `speckit.red-team.gate`** (the two
+   tables MUST stay identical — the extension repo's test suite diffs them;
+   if this command and the gate disagree on what qualifies, the gate can
+   block `/speckit.plan` for a spec this command refuses to red-team, which
+   is a deadlock):
+
+   | Category | Example keyword hits (not exhaustive) |
+   |---|---|
+   | `money_path` | `fee`, `fees`, `amount`, `allocation`, `carry`, `carried interest`, `preferred return`, `management fee`, `waterfall`, `price`, `currency`, `invoice`, `AUM`, `IRR`, `MOIC`, `valuation` |
+   | `regulatory_path` | `KYC`, `AML`, `GDPR`, `SEC`, `FCA`, `AIFMD`, `Reg S-P`, `compliance`, `regulator`, `audit report`, `investor disclosure`, `lawful basis`, `subject rights` |
+   | `ai_llm` | `LLM`, `Claude`, `GPT`, `prompt`, `inference`, `classification`, `extraction`, `summarisation`, `summarization`, `scoring`, `model output`, `AI-generated`, `AI-assisted` |
+   | `immutability_audit` | `immutable`, `append-only`, `permanent`, `never deleted`, `audit log`, `audit trail`, `tamper`, `hash chain`, `version chain`, `previous_.*_id` |
+   | `multi_party` | `approval`, `approve`, `IC`, `Investment Committee`, `two-person`, `partner approval`, `override`, `sign-off`, `sign off`, `role-based`, `permission gate` |
+   | `contracts` | `contract`, `interface`, `handoff`, `hand-off`, `upstream`, `downstream`, `API boundary`, `envelope`, `payload`, `request shape`, `response shape`, `schema` |
+
+3. **Judgement call — additive only**: keyword presence is authoritative for
+   qualification. Agent judgement MAY **add** a category the keywords missed
+   (the spec genuinely touches the concern without using the listed words) but
+   MUST NOT **remove** a keyword-matched category: the gate performs the same
+   deterministic scan with no judgement, so dropping a keyword-matched
+   category here produces a spec the gate blocks and this command declines to
+   red-team. If a keyword hit looks incidental, record that doubt in the
+   session metadata — the lens will simply return few or no findings.
 4. **Emit matched-trigger list**. If zero triggers match AND `--lenses` was not passed, print: `INFO: target spec matches no trigger categories — no red team required. Pass --lenses to run voluntarily.` and STOP (not an error — this is the opt-in voluntary path working correctly).
 
 ## 4. Lens selection (propose-and-confirm)
@@ -124,7 +144,7 @@ Resolve each name against the catalog. Unknown names produce a warning and are d
 ### If trigger-matched
 
 1. **Filter the catalog** to lenses where `trigger_match` intersects the matched-triggers list. Call this `matched_lenses`.
-2. **If `len(matched_lenses) == 0`**: No lens in the catalog covers the matched triggers. Print: `ERROR: lens catalog has no lens covering the matched triggers <list>. Extend the catalog or pass --lenses explicitly.` and STOP.
+2. **If `len(matched_lenses) == 0`**: No lens in the catalog covers the matched triggers. Print: `ERROR: lens catalog has no lens covering the matched triggers <list>. Extend the catalog or pass --lenses explicitly.` and STOP. *(With the §2.6 coverage validation in place this branch is unreachable for a well-formed catalog — it survives only as defence in depth for catalogs edited mid-session.)*
 3. **If `len(matched_lenses) <= 5`**: Use all of them as `selected_lenses` with `selection_method: auto`. Skip to §5.
 4. **If `len(matched_lenses) > 5`**: Enter the propose-and-confirm flow:
    - **Rank** by: primary — count of overlapping trigger-matches with the spec's triggers (higher = preferred); tie-breaker — `severity_weight` from the catalog (higher = preferred); final tie-breaker — alphabetical by name.
@@ -257,6 +277,8 @@ Walk the maintainer through each finding. For each finding in the table (group b
 | Lens catalog missing | Fail fast with the minimal-required-shape error printed in §2.2 above (no external doc references). |
 | Catalog unparseable | Fail fast with `ERROR: .specify/extensions/red-team/red-team-lenses.yml failed to parse: <error>`. |
 | Catalog empty (no `lenses` list) | Fail fast with `ERROR: lens catalog has no lenses defined`. |
+| Lens declares an unknown trigger category (typo) | Fail fast at config load — `ERROR: lens '<name>' declares unknown trigger category '<value>'`. An unschedulable lens is a latent gate deadlock. |
+| Catalog leaves ≥1 of the six trigger categories uncovered | Fail fast at config load — `ERROR: lens catalog leaves trigger categories uncovered: <list>`. The mandatory gate can demand any category; an uncovered category is a gate that can never be satisfied. |
 | Individual lens entry malformed | Warn, skip that lens, proceed with the rest. If ALL entries malformed, fail. |
 | Constitution lacks trigger criteria | Warn and proceed in bootstrap mode using the six default categories. UNLESS `--lenses` was passed (bypass). |
 | Target spec matches zero triggers AND no `--lenses` | Print info message and STOP. Not an error. |
