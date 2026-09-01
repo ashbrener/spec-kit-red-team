@@ -3,7 +3,7 @@ schema_version: "1.0"
 extension:
   id: "red-team"
   name: "Red Team"
-  version: "1.0.2"
+  version: "1.0.3"
   description: "Adversarial review of functional specs before /speckit.plan. Parallel adversarial lens agents catch hostile actors, silent failures, and regulatory blind spots that clarify/analyze cannot."
   author: "Ash Brener"
   repository: "https://github.com/ashbrener/spec-kit-red-team"

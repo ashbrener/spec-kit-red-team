@@ -6,6 +6,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 
 ## [Unreleased]
 
+## [1.0.3] — 2026-09-01
+
+### Fixed
+
+- **Gate accepted any file matching the findings glob** — `speckit.red-team.gate` treated the findings-report requirement as satisfied when a file matching `specs/<feature-id>/red-team-findings-*.md` merely existed. An empty stub, or a report whose resolution walk was abandoned mid-way, silently passed a mandatory governance gate. The gate now validates minimum structure with four deterministic, grep-level checks (V1 session/target identity, V2 at least one severity-ranked finding, V3 disposition evidence, V4 no declared non-zero `unresolved` counter) before returning `SATISFIED`, and emits a distinct `BLOCKED (findings report present but invalid)` decision naming the failed checks otherwise. Calibrated against a 50-report production fleet: 49 pass unchanged; the one now blocked declares `unresolved: 27` — the exact failure class the check exists for.
+- **Gate/run-list deadlock on demandable-but-unschedulable trigger categories** — the mandatory gate can demand a red team for any of the six trigger categories, but `speckit.red-team.run` refused to run when no catalog lens covered a matched category (`ERROR: lens catalog has no lens covering the matched triggers`) — leaving the gate permanently unsatisfiable. The shipped `config-template.yml` itself under-covered (no lens for `ai_llm` or `immutability_audit`), so a fresh install could deadlock on its first AI or audit-trail spec. Three-part fix: (1) `speckit.red-team.run` now validates the catalog at config load — unknown `trigger_match` values and uncovered categories are hard errors with the remediation named; (2) the run command's trigger-keyword table is now identical to the gate's (the previous drift meant e.g. a spec whose only money term was `IRR` tripped the gate but matched nothing in the run command), with agent judgement made additive-only so a keyword-matched category can never be dropped below what the gate will demand; (3) `config-template.yml` ships four example lenses covering all six categories.
+- **Documented gate waiver was unreachable when hook-invoked** — the gate read the `--skip-red-team-gate: <reason>` opt-out from `$ARGUMENTS`, but the spec-kit `before_plan` hook mechanism invokes hook commands by name only (`EXECUTE_COMMAND: {command}`) and never forwards `/speckit.plan`'s arguments, so `$ARGUMENTS` arrived empty (or as the uninterpolated literal) and the documented waiver could never fire. The gate now resolves *effective arguments*: interpolated `$ARGUMENTS` on direct invocation, else the arguments the user passed to the triggering `/speckit.plan` invocation visible in the session; a literal `$ARGUMENTS` string is treated as empty. The documented waiver UX is unchanged — it now actually works.
+
+### Added
+
+- Test suite at `tests/run-tests.sh` (plain bash + grep, no framework) with fixture reports: the reference implementation of gate checks V1-V4, a gate/run trigger-keyword-table parity check, a `config-template.yml` six-category coverage check, and a version-consistency check. Wired into CI via `.github/workflows/tests.yml`.
+
+### Compatibility
+
+- No interface changes: command names, hook name, findings glob, report path convention, and waiver syntax are all unchanged. Two behaviours are intentionally stricter: (1) a stub or unresolved findings report now blocks instead of passing — governance working as designed; (2) `speckit.red-team.run` refuses catalogs that do not cover all six trigger categories — previously such catalogs appeared to work until the day they deadlocked the gate. Projects with an under-covered catalog should add lenses for the uncovered categories (the updated template has ready examples).
+
 ## [1.0.2] — 2026-04-22
 
 ### Added
@@ -42,7 +58,8 @@ Prior to v1.0.2, enforcement of Principle VIII was hybrid: the constitution decl
 
 Real-world dogfood against a 500-line, 27-FR functional spec in a private project: 5 adversary agents dispatched in parallel returned 25 findings in ~1.5 min wall-clock (well under the 30-min SC-002 target). 19 of 25 findings met the "meaningful finding" bar (severity ≥ HIGH AND represents an adversarial scenario `/speckit.clarify` and `/speckit.analyze` structurally cannot catch). One finding caught a cross-spec identifier-type drift between two halves of the same interface contract that had been introduced by a separate commit 1 hour earlier — a class of issue single-spec tools cannot surface.
 
-[Unreleased]: https://github.com/ashbrener/spec-kit-red-team/compare/v1.0.2...HEAD
+[Unreleased]: https://github.com/ashbrener/spec-kit-red-team/compare/v1.0.3...HEAD
+[1.0.3]: https://github.com/ashbrener/spec-kit-red-team/releases/tag/v1.0.3
 [1.0.2]: https://github.com/ashbrener/spec-kit-red-team/releases/tag/v1.0.2
 [1.0.1]: https://github.com/ashbrener/spec-kit-red-team/releases/tag/v1.0.1
 [1.0.0]: https://github.com/ashbrener/spec-kit-red-team/releases/tag/v1.0.0
